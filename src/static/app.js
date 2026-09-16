@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentDay = "";
   let currentTimeRange = "";
   let highlightedActivity = "";
+  let highlightedActivityLabel = "";
   let sharedActivityFeedbackShown = false;
   let sharedActivityHandled = false;
 
@@ -54,9 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
 
+  function normalizeActivityKey(activityName) {
+    return activityName.trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
   function initializeSharedActivity() {
     const params = new URLSearchParams(window.location.search);
-    highlightedActivity = (params.get("activity") || "").trim();
+    highlightedActivityLabel = (params.get("activity") || "").trim();
+    highlightedActivity = normalizeActivityKey(highlightedActivityLabel);
   }
 
   function buildActivityShareUrl(activityName) {
@@ -141,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sharedCard = Array.from(
       activitiesList.querySelectorAll(".activity-card")
-    ).find((card) => card.dataset.activity === highlightedActivity);
+    ).find((card) => card.dataset.activityKey === highlightedActivity);
 
     if (sharedCard) {
       sharedActivityHandled = true;
@@ -150,12 +156,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const sharedActivityExists = Object.keys(allActivities).some(
-      (activityName) => activityName === highlightedActivity
+      (activityName) => normalizeActivityKey(activityName) === highlightedActivity
     );
 
     if (!sharedActivityFeedbackShown && !sharedActivityExists) {
       showMessage(
-        `We couldn't find ${highlightedActivity}, so the full activity list is shown.`,
+        `We couldn't find ${highlightedActivityLabel}, so the full activity list is shown.`,
         "info"
       );
       sharedActivityFeedbackShown = true;
@@ -592,8 +598,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const activityCard = document.createElement("div");
     activityCard.className = "activity-card";
     activityCard.dataset.activity = name;
+    activityCard.dataset.activityKey = normalizeActivityKey(name);
 
-    if (name === highlightedActivity) {
+    if (activityCard.dataset.activityKey === highlightedActivity) {
       activityCard.classList.add("shared-activity");
     }
 
@@ -691,13 +698,13 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="share-actions">
           <span class="share-label">Share with friends:</span>
           <div class="share-buttons">
-            <button class="share-button" data-share-action="share" data-activity="${name}" type="button" aria-label="Share ${name} with friends">
+            <button class="share-button" data-share-action="share" data-activity="${name}" type="button" aria-label="Share ${name}, scheduled ${formattedSchedule}, with friends">
               Share
             </button>
-            <button class="share-button" data-share-action="copy" data-activity="${name}" type="button" aria-label="Copy link for ${name}">
+            <button class="share-button" data-share-action="copy" data-activity="${name}" type="button" aria-label="Copy link for ${name}, scheduled ${formattedSchedule}">
               Copy Link
             </button>
-            <button class="share-button" data-share-action="email" data-activity="${name}" type="button" aria-label="Email ${name} to a friend">
+            <button class="share-button" data-share-action="email" data-activity="${name}" type="button" aria-label="Email ${name}, scheduled ${formattedSchedule}, to a friend">
               Email
             </button>
           </div>
@@ -721,32 +728,42 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const shareButtons = activityCard.querySelectorAll(".share-button");
-    shareButtons.forEach((button) => {
-      button.addEventListener("click", async () => {
-        const shareAction = button.dataset.shareAction;
-
-        try {
-          if (shareAction === "share") {
-            await shareActivity(name, details);
-            return;
-          }
-
-          if (shareAction === "copy") {
-            await copyActivityLink(name);
-            return;
-          }
-
-          shareActivityByEmail(name, details);
-        } catch (error) {
-          showMessage("Sharing failed. Please try again.", "error");
-          console.error("Error sharing activity:", error);
-        }
-      });
-    });
-
     activitiesList.appendChild(activityCard);
   }
+
+  activitiesList.addEventListener("click", async (event) => {
+    const shareButton = event.target.closest(".share-button");
+
+    if (!shareButton) {
+      return;
+    }
+
+    const activityName = shareButton.dataset.activity;
+    const shareAction = shareButton.dataset.shareAction;
+    const activityDetails = allActivities[activityName];
+
+    if (!activityName || !activityDetails) {
+      showMessage("This activity is no longer available to share.", "error");
+      return;
+    }
+
+    try {
+      if (shareAction === "share") {
+        await shareActivity(activityName, activityDetails);
+        return;
+      }
+
+      if (shareAction === "copy") {
+        await copyActivityLink(activityName);
+        return;
+      }
+
+      shareActivityByEmail(activityName, activityDetails);
+    } catch (error) {
+      showMessage("Sharing failed. Please try again.", "error");
+      console.error("Error sharing activity:", error);
+    }
+  });
 
   // Event listeners for search and filter
   searchInput.addEventListener("input", (event) => {
