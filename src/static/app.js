@@ -185,7 +185,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleSystemThemeChange(event) {
-    if (!localStorage.getItem("theme")) {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme !== "dark" && savedTheme !== "light") {
       applyTheme(event.matches);
     }
   }
