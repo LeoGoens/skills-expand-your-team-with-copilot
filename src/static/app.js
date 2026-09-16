@@ -59,6 +59,20 @@ document.addEventListener("DOMContentLoaded", () => {
     return activityName.trim().toLowerCase().replace(/\s+/g, " ");
   }
 
+  function formatActivityLabelForMessage(activityName) {
+    const cleanedLabel = activityName.replace(/\s+/g, " ").trim();
+
+    if (!cleanedLabel) {
+      return "";
+    }
+
+    if (cleanedLabel.length <= 60) {
+      return cleanedLabel;
+    }
+
+    return `${cleanedLabel.slice(0, 57)}...`;
+  }
+
   function initializeSharedActivity() {
     const params = new URLSearchParams(window.location.search);
     highlightedActivityLabel = (params.get("activity") || "").trim();
@@ -160,8 +174,14 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     if (!sharedActivityFeedbackShown && !sharedActivityExists) {
+      const safeActivityLabel = formatActivityLabelForMessage(
+        highlightedActivityLabel
+      );
+
       showMessage(
-        `We couldn't find ${highlightedActivityLabel}, so the full activity list is shown.`,
+        safeActivityLabel
+          ? `We couldn't find "${safeActivityLabel}", so the full activity list is shown.`
+          : "We couldn't find that activity, so the full activity list is shown.",
         "info"
       );
       sharedActivityFeedbackShown = true;
@@ -625,6 +645,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
+    const shareGroupLabelId = `share-label-${activityCard.dataset.activityKey.replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )}`;
 
     // Create activity tag
     const tagHtml = `
@@ -695,8 +719,8 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
-        <div class="share-actions">
-          <span class="share-label">Share with friends:</span>
+        <div class="share-actions" role="group" aria-labelledby="${shareGroupLabelId}">
+          <span class="share-label" id="${shareGroupLabelId}">Share with friends:</span>
           <div class="share-buttons">
             <button class="share-button" data-share-action="share" data-activity="${name}" type="button" aria-label="Share ${name}, scheduled ${formattedSchedule}, with friends">
               Share
