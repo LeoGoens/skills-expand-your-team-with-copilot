@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTimeRange = "";
   let highlightedActivity = "";
   let sharedActivityFeedbackShown = false;
+  let sharedActivityHandled = false;
 
   // Authentication state
   let currentUser = null;
@@ -134,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function focusSharedActivityCard() {
-    if (!highlightedActivity) {
+    if (!highlightedActivity || sharedActivityHandled) {
       return;
     }
 
@@ -143,6 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ).find((card) => card.dataset.activity === highlightedActivity);
 
     if (sharedCard) {
+      sharedActivityHandled = true;
       sharedCard.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
@@ -158,6 +160,8 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       sharedActivityFeedbackShown = true;
     }
+
+    sharedActivityHandled = true;
   }
 
   // Initialize filters from active elements
@@ -687,13 +691,13 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="share-actions">
           <span class="share-label">Share with friends:</span>
           <div class="share-buttons">
-            <button class="share-button" data-share-action="share" data-activity="${name}" type="button">
+            <button class="share-button" data-share-action="share" data-activity="${name}" type="button" aria-label="Share ${name} with friends">
               Share
             </button>
-            <button class="share-button" data-share-action="copy" data-activity="${name}" type="button">
+            <button class="share-button" data-share-action="copy" data-activity="${name}" type="button" aria-label="Copy link for ${name}">
               Copy Link
             </button>
-            <button class="share-button" data-share-action="email" data-activity="${name}" type="button">
+            <button class="share-button" data-share-action="email" data-activity="${name}" type="button" aria-label="Email ${name} to a friend">
               Email
             </button>
           </div>
