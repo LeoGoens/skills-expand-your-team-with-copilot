@@ -182,7 +182,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize saved theme preference
   function initializeTheme() {
     const savedTheme = localStorage.getItem("theme");
-    applyTheme(savedTheme === "dark");
+    if (savedTheme === "dark" || savedTheme === "light") {
+      applyTheme(savedTheme === "dark");
+      return;
+    }
+
+    const prefersDarkMode =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(prefersDarkMode);
   }
 
   // Toggle between light and dark modes
