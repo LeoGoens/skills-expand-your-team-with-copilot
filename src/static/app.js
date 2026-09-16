@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initializeSharedActivity() {
     const params = new URLSearchParams(window.location.search);
-    highlightedActivity = params.get("activity") || "";
+    highlightedActivity = (params.get("activity") || "").trim();
   }
 
   function buildActivityShareUrl(activityName) {
@@ -83,8 +83,12 @@ document.addEventListener("DOMContentLoaded", () => {
     helperTextArea.style.left = "-9999px";
     document.body.appendChild(helperTextArea);
     helperTextArea.select();
-    document.execCommand("copy");
+    const wasCopied = document.execCommand("copy");
     document.body.removeChild(helperTextArea);
+
+    if (!wasCopied) {
+      throw new Error("Copy command was rejected");
+    }
   }
 
   async function copyActivityLink(activityName) {
@@ -109,6 +113,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (error.name === "AbortError") {
           return;
         }
+
+        throw error;
       }
     }
 
@@ -141,7 +147,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!sharedActivityFeedbackShown && !allActivities[highlightedActivity]) {
+    const sharedActivityExists = Object.keys(allActivities).some(
+      (activityName) => activityName === highlightedActivity
+    );
+
+    if (!sharedActivityFeedbackShown && !sharedActivityExists) {
       showMessage(
         `We couldn't find ${highlightedActivity}, so the full activity list is shown.`,
         "info"
