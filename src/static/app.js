@@ -215,6 +215,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize saved theme preference
   function initializeTheme() {
+    const savedTheme = getStoredTheme();
+    if (savedTheme === "dark" || savedTheme === "light") {
+      applyTheme(savedTheme === "dark");
+      return;
+    }
+
     if (window.matchMedia) {
       if (!systemThemeMediaQuery) {
         systemThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -227,12 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
           systemThemeMediaQuery.addListener(handleSystemThemeChange);
         }
       }
-    }
-
-    const savedTheme = getStoredTheme();
-    if (savedTheme === "dark" || savedTheme === "light") {
-      applyTheme(savedTheme === "dark");
-      return;
     }
 
     applyTheme(systemThemeMediaQuery ? systemThemeMediaQuery.matches : false);
