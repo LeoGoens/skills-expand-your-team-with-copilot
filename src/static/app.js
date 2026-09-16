@@ -24,6 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const closeLoginModal = document.querySelector(".close-login-modal");
   const loginMessage = document.getElementById("login-message");
+  const {
+    normalizeActivityKey,
+    formatActivityLabelForMessage,
+    getSharedActivityVisibilityState,
+  } = window.activityShareHelpers;
 
   // Activity categories with corresponding colors
   const activityTypes = {
@@ -54,24 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
     afternoon: { start: "15:00", end: "18:00" }, // After school hours
     weekend: { days: ["Saturday", "Sunday"] }, // Weekend days
   };
-
-  function normalizeActivityKey(activityName) {
-    return activityName.trim().toLowerCase().replace(/\s+/g, " ");
-  }
-
-  function formatActivityLabelForMessage(activityName) {
-    const cleanedLabel = activityName.replace(/\s+/g, " ").trim();
-
-    if (!cleanedLabel) {
-      return "";
-    }
-
-    if (cleanedLabel.length <= 60) {
-      return cleanedLabel;
-    }
-
-    return `${cleanedLabel.slice(0, 57)}...`;
-  }
 
   function initializeSharedActivity() {
     const params = new URLSearchParams(window.location.search);
@@ -154,26 +141,76 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
 
+  function createShareButton(text, shareAction, activityName, formattedSchedule) {
+    const shareButton = document.createElement("button");
+    shareButton.className = "share-button";
+    shareButton.type = "button";
+    shareButton.dataset.shareAction = shareAction;
+    shareButton.textContent = text;
+    shareButton.setAttribute(
+      "aria-label",
+      `${text} for ${activityName}, scheduled ${formattedSchedule}`
+    );
+    return shareButton;
+  }
+
+  function createShareActions(activityName, formattedSchedule, activityKey) {
+    const shareActions = document.createElement("div");
+    const shareGroupLabelId = `share-label-${activityKey.replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )}`;
+
+    shareActions.className = "share-actions";
+    shareActions.setAttribute("role", "group");
+    shareActions.setAttribute("aria-labelledby", shareGroupLabelId);
+
+    const shareLabel = document.createElement("span");
+    shareLabel.className = "share-label";
+    shareLabel.id = shareGroupLabelId;
+    shareLabel.textContent = "Share with friends:";
+
+    const shareButtons = document.createElement("div");
+    shareButtons.className = "share-buttons";
+    shareButtons.append(
+      createShareButton("Share", "share", activityName, formattedSchedule),
+      createShareButton("Copy Link", "copy", activityName, formattedSchedule),
+      createShareButton("Email", "email", activityName, formattedSchedule)
+    );
+
+    shareActions.append(shareLabel, shareButtons);
+    return shareActions;
+  }
+
   function focusSharedActivityCard() {
     if (!highlightedActivity || sharedActivityHandled) {
       return;
     }
 
-    const sharedCard = Array.from(
+    const visibleActivityKeys = Array.from(
       activitiesList.querySelectorAll(".activity-card")
-    ).find((card) => card.dataset.activityKey === highlightedActivity);
+    ).map((card) => card.dataset.activityKey);
+    const sharedActivityState = getSharedActivityVisibilityState({
+      highlightedActivity,
+      allActivities,
+      visibleActivityKeys,
+    });
 
-    if (sharedCard) {
+    if (sharedActivityState === "visible") {
+      const sharedCard = Array.from(
+        activitiesList.querySelectorAll(".activity-card")
+      ).find((card) => card.dataset.activityKey === highlightedActivity);
+
+      if (!sharedCard) {
+        return;
+      }
+
       sharedActivityHandled = true;
       sharedCard.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    const sharedActivityExists = Object.keys(allActivities).some(
-      (activityName) => normalizeActivityKey(activityName) === highlightedActivity
-    );
-
-    if (!sharedActivityFeedbackShown && !sharedActivityExists) {
+    if (!sharedActivityFeedbackShown && sharedActivityState === "missing") {
       const safeActivityLabel = formatActivityLabelForMessage(
         highlightedActivityLabel
       );
@@ -185,9 +222,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "info"
       );
       sharedActivityFeedbackShown = true;
+      sharedActivityHandled = true;
     }
-
-    sharedActivityHandled = true;
   }
 
   // Initialize filters from active elements
@@ -645,10 +681,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
-    const shareGroupLabelId = `share-label-${activityCard.dataset.activityKey.replace(
-      /[^a-z0-9]+/g,
-      "-"
-    )}`;
 
     // Create activity tag
     const tagHtml = `
@@ -719,20 +751,6 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
-        <div class="share-actions" role="group" aria-labelledby="${shareGroupLabelId}">
-          <span class="share-label" id="${shareGroupLabelId}">Share with friends:</span>
-          <div class="share-buttons">
-            <button class="share-button" data-share-action="share" data-activity="${name}" type="button" aria-label="Share ${name}, scheduled ${formattedSchedule}, with friends">
-              Share
-            </button>
-            <button class="share-button" data-share-action="copy" data-activity="${name}" type="button" aria-label="Copy link for ${name}, scheduled ${formattedSchedule}">
-              Copy Link
-            </button>
-            <button class="share-button" data-share-action="email" data-activity="${name}" type="button" aria-label="Email ${name}, scheduled ${formattedSchedule}, to a friend">
-              Email
-            </button>
-          </div>
-        </div>
       </div>
     `;
 
@@ -752,6 +770,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    const activityCardActions = activityCard.querySelector(".activity-card-actions");
+    activityCardActions.appendChild(
+      createShareActions(name, formattedSchedule, activityCard.dataset.activityKey)
+    );
+
     activitiesList.appendChild(activityCard);
   }
 
@@ -762,7 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const activityName = shareButton.dataset.activity;
+    const activityName = shareButton.closest(".activity-card")?.dataset.activity;
     const shareAction = shareButton.dataset.shareAction;
     const activityDetails = allActivities[activityName];
 
