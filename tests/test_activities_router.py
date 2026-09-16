@@ -22,7 +22,8 @@ class ActivitiesDifficultyFilterTests(unittest.TestCase):
     def test_difficulty_all_filters_activities_without_difficulty(self):
         activities_router.get_activities(difficulty="all")
         self.assertEqual(
-            self.stub_collection.last_query.get("difficulty"), {"$exists": False}
+            self.stub_collection.last_query.get("$or"),
+            [{"difficulty": {"$exists": False}}, {"difficulty": None}],
         )
 
     def test_difficulty_value_maps_to_stored_label(self):
