@@ -51,10 +51,7 @@ def get_activities(
         difficulty_key = difficulty.lower()
 
         if difficulty_key == "all":
-            query["$or"] = [
-                {"difficulty": {"$exists": False}},
-                {"difficulty": None}
-            ]
+            query["difficulty"] = None
         else:
             mapped_difficulty = difficulty_mapping.get(difficulty_key)
             if not mapped_difficulty:
