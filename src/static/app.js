@@ -175,13 +175,19 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyTheme(darkModeEnabled) {
     isDarkMode = darkModeEnabled;
     document.body.classList.toggle("dark-mode", isDarkMode);
-    themeToggleIcon.textContent = isDarkMode ? "☀️" : "🌙";
-    themeToggleText.textContent = isDarkMode ? "Light Mode" : "Dark Mode";
-    themeToggle.setAttribute(
-      "aria-label",
-      isDarkMode ? "Switch to light mode" : "Switch to dark mode"
-    );
-    themeToggle.setAttribute("aria-pressed", String(isDarkMode));
+    if (themeToggleIcon) {
+      themeToggleIcon.textContent = isDarkMode ? "☀️" : "🌙";
+    }
+    if (themeToggleText) {
+      themeToggleText.textContent = isDarkMode ? "Light Mode" : "Dark Mode";
+    }
+    if (themeToggle) {
+      themeToggle.setAttribute(
+        "aria-label",
+        isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+      );
+      themeToggle.setAttribute("aria-pressed", String(isDarkMode));
+    }
   }
 
   function handleSystemThemeChange(event) {
@@ -295,7 +301,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loginButton.addEventListener("click", openLoginModal);
   logoutButton.addEventListener("click", logout);
   closeLoginModal.addEventListener("click", closeLoginModalHandler);
-  themeToggle.addEventListener("click", toggleTheme);
+  if (themeToggle) {
+    themeToggle.addEventListener("click", toggleTheme);
+  }
 
   // Close login modal when clicking outside
   window.addEventListener("click", (event) => {
