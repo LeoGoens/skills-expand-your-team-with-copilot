@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
   let isDarkMode = false;
+  let systemThemeMediaQuery = null;
 
   // Time range mappings for the dropdown
   const timeRanges = {
@@ -176,7 +177,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.toggle("dark-mode", isDarkMode);
     themeToggleIcon.textContent = isDarkMode ? "☀️" : "🌙";
     themeToggleText.textContent = isDarkMode ? "Light Mode" : "Dark Mode";
+    themeToggle.setAttribute(
+      "aria-label",
+      isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+    );
     themeToggle.setAttribute("aria-pressed", String(isDarkMode));
+  }
+
+  function handleSystemThemeChange(event) {
+    if (!localStorage.getItem("theme")) {
+      applyTheme(event.matches);
+    }
   }
 
   // Initialize saved theme preference
@@ -187,16 +198,37 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const prefersDarkMode =
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyTheme(prefersDarkMode);
+    if (window.matchMedia) {
+      systemThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      applyTheme(systemThemeMediaQuery.matches);
+      if (systemThemeMediaQuery.addEventListener) {
+        systemThemeMediaQuery.addEventListener("change", handleSystemThemeChange);
+      } else if (systemThemeMediaQuery.addListener) {
+        systemThemeMediaQuery.addListener(handleSystemThemeChange);
+      }
+      return;
+    }
+
+    applyTheme(false);
   }
 
   // Toggle between light and dark modes
   function toggleTheme() {
     const nextThemeIsDark = !isDarkMode;
     localStorage.setItem("theme", nextThemeIsDark ? "dark" : "light");
+
+    if (systemThemeMediaQuery) {
+      if (systemThemeMediaQuery.removeEventListener) {
+        systemThemeMediaQuery.removeEventListener(
+          "change",
+          handleSystemThemeChange
+        );
+      } else if (systemThemeMediaQuery.removeListener) {
+        systemThemeMediaQuery.removeListener(handleSystemThemeChange);
+      }
+      systemThemeMediaQuery = null;
+    }
+
     applyTheme(nextThemeIsDark);
   }
 
