@@ -27,8 +27,8 @@ def get_activities(
     - day: Filter activities occurring on this day (e.g., 'Monday', 'Tuesday')
     - start_time: Filter activities starting at or after this time (24-hour format, e.g., '14:30')
     - end_time: Filter activities ending at or before this time (24-hour format, e.g., '17:00')
-    - difficulty: Filter by difficulty ('Beginner', 'Intermediate', 'Advanced');
-      use 'all' to show activities with no specified difficulty.
+    - difficulty: Optional query value `all`, `beginner`, `intermediate`, or `advanced`.
+      `all` shows activities with no specified difficulty.
     """
     # Build the query based on provided filters
     query = {}
@@ -43,17 +43,23 @@ def get_activities(
         query["schedule_details.end_time"] = {"$lte": end_time}
 
     if difficulty:
-        if difficulty == "all":
+        difficulty_mapping = {
+            "beginner": "Beginner",
+            "intermediate": "Intermediate",
+            "advanced": "Advanced"
+        }
+        difficulty_key = difficulty.lower()
+
+        if difficulty_key == "all":
             query["difficulty"] = {"$exists": False}
         else:
-            difficulty_mapping = {
-                "beginner": "Beginner",
-                "intermediate": "Intermediate",
-                "advanced": "Advanced"
-            }
-            mapped_difficulty = difficulty_mapping.get(difficulty.lower())
-            if mapped_difficulty:
-                query["difficulty"] = mapped_difficulty
+            mapped_difficulty = difficulty_mapping.get(difficulty_key)
+            if not mapped_difficulty:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid difficulty. Use one of: all, beginner, intermediate, advanced"
+                )
+            query["difficulty"] = mapped_difficulty
     
     # Query the database
     activities = {}
