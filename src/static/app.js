@@ -190,8 +190,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem("theme");
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function setStoredTheme(theme) {
+    try {
+      localStorage.setItem("theme", theme);
+    } catch (error) {
+      // Ignore storage errors so theme toggling still works in memory
+    }
+  }
+
   function handleSystemThemeChange(event) {
-    const savedTheme = localStorage.getItem("theme");
+    const savedTheme = getStoredTheme();
     if (savedTheme !== "dark" && savedTheme !== "light") {
       applyTheme(event.matches);
     }
@@ -213,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const savedTheme = localStorage.getItem("theme");
+    const savedTheme = getStoredTheme();
     if (savedTheme === "dark" || savedTheme === "light") {
       applyTheme(savedTheme === "dark");
       return;
@@ -225,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Toggle between light and dark modes
   function toggleTheme() {
     const nextThemeIsDark = !isDarkMode;
-    localStorage.setItem("theme", nextThemeIsDark ? "dark" : "light");
+    setStoredTheme(nextThemeIsDark ? "dark" : "light");
     applyTheme(nextThemeIsDark);
   }
 
